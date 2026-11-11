@@ -1,0 +1,6 @@
+{
+  "name": "custom-sidebar",
+  "version": "0.1.0",
+  "description": "오른쪽 사이드바: 지금 상황·캐시, 컨텍스트·한도·비용, 채팅방, Git 변경, 메모, 활동",
+  "types": "./types/index.d.ts"
+}

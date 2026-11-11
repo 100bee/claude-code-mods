@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="645" height="394" viewBox="0 0 644.8 394.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'D2Coding', 'Noto Sans Mono CJK KR', monospace" font-size="14">
+  <rect x="0.5" y="0.5" width="643.8000000000001" height="393" rx="10" fill="#16171a" stroke="#2c2e33"/>
+  <path d="M0.5 34 H644.3000000000001 V10.5 a10 10 0 0 0 -10 -10 H10.5 a10 10 0 0 0 -10 10 Z" fill="#222428"/>
+  <line x1="0" y1="34" x2="644.8000000000001" y2="34" stroke="#2c2e33"/>
+  <circle cx="18" cy="17.0" r="5.5" fill="#ff5f57"/>
+  <circle cx="36" cy="17.0" r="5.5" fill="#febc2e"/>
+  <circle cx="54" cy="17.0" r="5.5" fill="#28c840"/>
+  <text x="322.40000000000003" y="21.5" text-anchor="middle" fill="#6e737b" font-size="12">claude — chat-theme</text>
+  <rect x="24.2" y="64.0" width="596.4" height="60.0" rx="7" fill="none" stroke="#3e7388" stroke-width="1.4"/>
+  <text x="36.8" y="88.4" fill="#5ec8f2" font-weight="700" xml:space="preserve">나</text>
+  <text x="36.8" y="108.4" fill="#d4d4d4" xml:space="preserve">로그인 API 에러 좀 봐줘</text>
+  <rect x="24.2" y="144.0" width="596.4" height="80.0" rx="7" fill="none" stroke="#7b4a3a" stroke-width="1.4"/>
+  <text x="36.8" y="168.4" fill="#d97757" font-weight="700" xml:space="preserve">Claude</text>
+  <text x="36.8" y="188.4" fill="#e0b84a" xml:space="preserve">AuthService.java</text>
+  <text x="171.2" y="188.4" fill="#d4d4d4" xml:space="preserve"> 42번 줄에서 토큰 만료 체크가 빠져 있어요.</text>
+  <text x="36.8" y="208.4" fill="#6e737b" xml:space="preserve">if (token.isExpired()) throw new AuthException();</text>
+  <text x="20.0" y="268.4" fill="#d4d4d4" font-weight="700" xml:space="preserve">/theme-chat </text>
+  <text x="120.8" y="268.4" fill="#6e737b" xml:space="preserve">default · spring · summer · autumn · winter · auto</text>
+  <text x="20.0" y="308.4" fill="#d4d4d4" font-weight="700" xml:space="preserve">default</text>
+  <rect x="20.0" y="318.0" width="40" height="22" rx="5" fill="#5ec8f2"/>
+  <rect x="64.0" y="318.0" width="40" height="22" rx="5" fill="#d97757"/>
+  <text x="20.0" y="360.4" fill="#6e737b" xml:space="preserve">나</text>
+  <text x="36.8" y="360.4" fill="#6e737b" xml:space="preserve">   Claude</text>
+  <text x="137.6" y="308.4" fill="#6e737b" xml:space="preserve">spring</text>
+  <rect x="137.6" y="318.0" width="40" height="22" rx="5" fill="#9fd67a"/>
+  <rect x="181.6" y="318.0" width="40" height="22" rx="5" fill="#f7a8c4"/>
+  <text x="137.6" y="360.4" fill="#6e737b" xml:space="preserve">나</text>
+  <text x="154.4" y="360.4" fill="#6e737b" xml:space="preserve">   Claude</text>
+  <text x="255.2" y="308.4" fill="#6e737b" xml:space="preserve">summer</text>
+  <rect x="255.2" y="318.0" width="40" height="22" rx="5" fill="#ffd23f"/>
+  <rect x="299.2" y="318.0" width="40" height="22" rx="5" fill="#3fa7e0"/>
+  <text x="255.2" y="360.4" fill="#6e737b" xml:space="preserve">나</text>
+  <text x="272.0" y="360.4" fill="#6e737b" xml:space="preserve">   Claude</text>
+  <text x="372.8" y="308.4" fill="#6e737b" xml:space="preserve">autumn</text>
+  <rect x="372.8" y="318.0" width="40" height="22" rx="5" fill="#d9453b"/>
+  <rect x="416.8" y="318.0" width="40" height="22" rx="5" fill="#b5835a"/>
+  <text x="372.8" y="360.4" fill="#6e737b" xml:space="preserve">나</text>
+  <text x="389.6" y="360.4" fill="#6e737b" xml:space="preserve">   Claude</text>
+  <text x="490.4" y="308.4" fill="#6e737b" xml:space="preserve">winter</text>
+  <rect x="490.4" y="318.0" width="40" height="22" rx="5" fill="#e8eef2"/>
+  <rect x="534.4" y="318.0" width="40" height="22" rx="5" fill="#a8d8f0"/>
+  <text x="490.4" y="360.4" fill="#6e737b" xml:space="preserve">나</text>
+  <text x="507.2" y="360.4" fill="#6e737b" xml:space="preserve">   Claude</text>
+</svg>

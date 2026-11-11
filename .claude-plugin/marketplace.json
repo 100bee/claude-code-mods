@@ -1,0 +1,22 @@
+{
+  "name": "claude-code-mods",
+  "owner": { "name": "100bee" },
+  "description": "Claude Code를 내 손에 맞게 바꾸는 mod 모음: 사이드바, 채팅 테마, 작업 중 오리",
+  "plugins": [
+    {
+      "name": "custom-sidebar",
+      "source": "./custom-sidebar",
+      "description": "오른쪽 사이드바: 지금 상황·캐시, 컨텍스트·한도·비용, 채팅방, Git 변경, 메모, 활동"
+    },
+    {
+      "name": "chat-theme",
+      "source": "./chat-theme",
+      "description": "내 메시지와 Claude 답변을 색 있는 상자로 감싸 채팅처럼 보이게 합니다"
+    },
+    {
+      "name": "waddle-duck",
+      "source": "./waddle-duck",
+      "description": "Claude가 작업하는 동안 프롬프트 위에서 픽셀 오리 가족이 뒤뚱뒤뚱 걸어갑니다"
+    }
+  ]
+}

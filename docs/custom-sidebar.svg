@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="998" height="734" viewBox="0 0 997.6 734.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'D2Coding', 'Noto Sans Mono CJK KR', monospace" font-size="14">
+  <rect x="0.5" y="0.5" width="996.6" height="733" rx="10" fill="#16171a" stroke="#2c2e33"/>
+  <path d="M0.5 34 H997.1 V10.5 a10 10 0 0 0 -10 -10 H10.5 a10 10 0 0 0 -10 10 Z" fill="#222428"/>
+  <line x1="0" y1="34" x2="997.6" y2="34" stroke="#2c2e33"/>
+  <circle cx="18" cy="17.0" r="5.5" fill="#ff5f57"/>
+  <circle cx="36" cy="17.0" r="5.5" fill="#febc2e"/>
+  <circle cx="54" cy="17.0" r="5.5" fill="#28c840"/>
+  <text x="498.8" y="21.5" text-anchor="middle" fill="#6e737b" font-size="12">claude — custom-sidebar</text>
+  <text x="20.0" y="68.4" fill="#6e737b" xml:space="preserve">&gt; </text>
+  <text x="36.8" y="68.4" fill="#d4d4d4" xml:space="preserve">로그인 API 에러 좀 봐줘</text>
+  <text x="20.0" y="108.4" fill="#7fb069" xml:space="preserve">⏺ </text>
+  <text x="36.8" y="108.4" fill="#d4d4d4" font-weight="700" xml:space="preserve">Read</text>
+  <text x="70.4" y="108.4" fill="#6e737b" xml:space="preserve">(src/auth/AuthService.java)</text>
+  <text x="20.0" y="128.4" fill="#7fb069" xml:space="preserve">⏺ </text>
+  <text x="36.8" y="128.4" fill="#d4d4d4" font-weight="700" xml:space="preserve">Bash</text>
+  <text x="70.4" y="128.4" fill="#6e737b" xml:space="preserve">(npm test)</text>
+  <text x="20.0" y="148.4" fill="#6e737b" xml:space="preserve">  ⎿  </text>
+  <text x="62.0" y="148.4" fill="#6e737b" xml:space="preserve">Tests: 1 failed, 41 passed</text>
+  <text x="20.0" y="188.4" fill="#d4d4d4" xml:space="preserve">⏺ </text>
+  <text x="36.8" y="188.4" fill="#d4d4d4" xml:space="preserve">42번 줄에서 토큰 만료 체크가 빠져 있어요.</text>
+  <text x="20.0" y="208.4" fill="#d4d4d4" xml:space="preserve">  고친 뒤 테스트를 다시 돌릴게요.</text>
+  <text x="20.0" y="648.4" fill="#d4d4d4" xml:space="preserve">◧ 사이드바 닫기</text>
+  <rect x="24.2" y="664.0" width="512.4" height="40.0" rx="6" fill="none" stroke="#3a3d43" stroke-width="1.4"/>
+  <text x="36.8" y="688.4" fill="#d4d4d4" xml:space="preserve">&gt; </text>
+  <rect x="561.8" y="64.0" width="411.6" height="640.0" rx="6" fill="none" stroke="#3a3d43" stroke-width="1.4"/>
+  <rect x="574.4" y="56.0" width="84.0" height="16.0" fill="#16171a"/>
+  <text x="574.4" y="68.4" fill="#d4d4d4" xml:space="preserve"> 사이드바 </text>
+  <text x="574.4" y="88.4" fill="#d97757" xml:space="preserve">▣ </text>
+  <text x="591.2" y="88.4" fill="#d4d4d4" font-weight="700" xml:space="preserve">my-app</text>
+  <text x="658.4" y="88.4" fill="#7fb069" xml:space="preserve">ctx 42%</text>
+  <text x="734.0" y="88.4" fill="#6e737b" xml:space="preserve">캐시 42분</text>
+  <text x="826.4" y="88.4" fill="#6e737b" xml:space="preserve">경로 복사</text>
+  <text x="574.4" y="108.4" fill="#6e737b" xml:space="preserve">~/projects/my-app</text>
+  <text x="574.4" y="128.4" fill="#6e737b" xml:space="preserve">요청  </text>
+  <text x="624.8" y="128.4" fill="#d4d4d4" xml:space="preserve">로그인 API 에러 좀 봐줘</text>
+  <text x="574.4" y="148.4" fill="#6e737b" xml:space="preserve">지금  </text>
+  <text x="624.8" y="148.4" fill="#d97757" xml:space="preserve">▸ </text>
+  <text x="641.6" y="148.4" fill="#d4d4d4" xml:space="preserve">Bash: 테스트 실행</text>
+  <text x="784.4" y="148.4" fill="#6e737b" xml:space="preserve">  1분</text>
+  <text x="574.4" y="168.4" fill="#6e737b" xml:space="preserve">할 일 </text>
+  <rect x="624.8" y="159.0" width="33.6" height="10" rx="2" fill="#2a2d33"/>
+  <rect x="624.8" y="159.0" width="25.2" height="10" rx="2" fill="#d97757"/>
+  <text x="658.4" y="168.4" fill="#d4d4d4" xml:space="preserve"> 3/4</text>
+  <text x="692.0" y="168.4" fill="#6e737b" xml:space="preserve"> · 테스트 고치는 중</text>
+  <text x="574.4" y="188.4" fill="#d97757" font-weight="700" text-decoration="underline" xml:space="preserve">사용량</text>
+  <text x="641.6" y="188.4" fill="#6e737b" xml:space="preserve">채팅방</text>
+  <text x="708.8" y="188.4" fill="#6e737b" xml:space="preserve">변경</text>
+  <text x="759.2" y="188.4" fill="#6e737b" xml:space="preserve">활동</text>
+  <text x="809.6" y="188.4" fill="#6e737b" xml:space="preserve">메모</text>
+  <text x="574.4" y="208.4" fill="#7b4a3a" xml:space="preserve">──────────────────────────────────────────────</text>
+  <text x="574.4" y="228.4" fill="#d4d4d4" font-weight="700" xml:space="preserve">컨텍스트</text>
+  <text x="641.6" y="228.4" fill="#7b4a3a" xml:space="preserve"> ─────────────────────────────────────</text>
+  <rect x="574.4" y="239.0" width="336.0" height="10" rx="2" fill="#2a2d33"/>
+  <rect x="574.4" y="239.0" width="141.1" height="10" rx="2" fill="#7fb069"/>
+  <text x="910.4" y="248.4" fill="#7fb069" xml:space="preserve"> 42%</text>
+  <text x="574.4" y="268.4" fill="#6e737b" xml:space="preserve">84.0k / 200.0k 토큰</text>
+  <text x="574.4" y="308.4" fill="#d4d4d4" font-weight="700" xml:space="preserve">구성</text>
+  <text x="608.0" y="308.4" fill="#7b4a3a" xml:space="preserve"> ─────────────────────────────────────────</text>
+  <text x="574.4" y="328.4" fill="#d4d4d4" xml:space="preserve">시스템 프롬프트</text>
+  <rect x="708.8" y="319.0" width="193.2" height="10" rx="2" fill="#2a2d33"/>
+  <rect x="708.8" y="319.0" width="45.9" height="10" rx="2" fill="#7b4a3a"/>
+  <text x="902.0" y="328.4" fill="#6e737b" xml:space="preserve"> 12.0k</text>
+  <text x="574.4" y="348.4" fill="#d4d4d4" xml:space="preserve">시스템 툴</text>
+  <rect x="708.8" y="339.0" width="193.2" height="10" rx="2" fill="#2a2d33"/>
+  <rect x="708.8" y="339.0" width="70.4" height="10" rx="2" fill="#7b4a3a"/>
+  <text x="902.0" y="348.4" fill="#6e737b" xml:space="preserve"> 18.4k</text>
+  <text x="574.4" y="368.4" fill="#d4d4d4" xml:space="preserve">메모리 파일</text>
+  <rect x="708.8" y="359.0" width="193.2" height="10" rx="2" fill="#2a2d33"/>
+  <rect x="708.8" y="359.0" width="11.9" height="10" rx="2" fill="#7b4a3a"/>
+  <text x="902.0" y="368.4" fill="#6e737b" xml:space="preserve"> 3.1k</text>
+  <text x="574.4" y="388.4" fill="#d4d4d4" xml:space="preserve">대화 메시지</text>
+  <rect x="708.8" y="379.0" width="193.2" height="10" rx="2" fill="#2a2d33"/>
+  <rect x="708.8" y="379.0" width="193.2" height="10" rx="2" fill="#7b4a3a"/>
+  <text x="902.0" y="388.4" fill="#6e737b" xml:space="preserve"> 50.5k</text>
+  <text x="574.4" y="428.4" fill="#d4d4d4" font-weight="700" xml:space="preserve">턴별 증가 (최근 8턴)</text>
+  <text x="742.4" y="428.4" fill="#7b4a3a" xml:space="preserve"> ─────────────────────────</text>
+  <text x="574.4" y="448.4" fill="#d97757" xml:space="preserve">▂▃▅▂▇▃▄▆</text>
+  <text x="574.4" y="468.4" fill="#6e737b" xml:space="preserve">마지막 턴 +6.2k · 최대 +9.8k</text>
+  <text x="574.4" y="508.4" fill="#d4d4d4" font-weight="700" xml:space="preserve">프롬프트 캐시</text>
+  <text x="683.6" y="508.4" fill="#7b4a3a" xml:space="preserve"> ────────────────────────────────</text>
+  <rect x="574.4" y="519.0" width="336.0" height="10" rx="2" fill="#2a2d33"/>
+  <rect x="574.4" y="519.0" width="235.2" height="10" rx="2" fill="#d97757"/>
+  <text x="910.4" y="528.4" fill="#d97757" xml:space="preserve"> 70%</text>
+  <text x="574.4" y="548.4" fill="#6e737b" xml:space="preserve">42분 남음 · 유지 시간 60분</text>
+  <text x="574.4" y="588.4" fill="#d4d4d4" font-weight="700" xml:space="preserve">비용 · 한도</text>
+  <text x="666.8" y="588.4" fill="#7b4a3a" xml:space="preserve"> ──────────────────────────────────</text>
+  <text x="574.4" y="608.4" fill="#d4d4d4" xml:space="preserve">세션 비용  $1.23</text>
+  <text x="574.4" y="628.4" fill="#d4d4d4" xml:space="preserve">5시간</text>
+  <rect x="650.0" y="619.0" width="260.4" height="10" rx="2" fill="#2a2d33"/>
+  <rect x="650.0" y="619.0" width="109.4" height="10" rx="2" fill="#7fb069"/>
+  <text x="910.4" y="628.4" fill="#d4d4d4" xml:space="preserve"> 42%</text>
+  <text x="650.0" y="648.4" fill="#6e737b" xml:space="preserve">2시간 10분 후 리셋</text>
+</svg>

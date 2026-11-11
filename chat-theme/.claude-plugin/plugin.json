@@ -1,0 +1,6 @@
+{
+  "name": "chat-theme",
+  "version": "0.2.0",
+  "description": "내 메시지와 Claude 답변을 색 있는 제목 줄과 테두리로 감싸서 채팅처럼 보이게 합니다",
+  "types": "./types/index.d.ts"
+}
