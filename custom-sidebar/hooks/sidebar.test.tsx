@@ -36,9 +36,16 @@ const ran: string[] = []
 const copied: string[] = []
 const spawned: string[][] = []
 
-function engine(on: any, store: Record<string, unknown> = {}, commands = ['rename', 'resume'], cwd = '/repo', env: Record<string, string> = {}) {
+function engine(on: any, store: Record<string, unknown> = {}, commands = ['rename', 'resume'], cwd = '/repo', env: Record<string, string> = {}, live = false) {
   const clock = mock.clock(on, { now: 1_000_000 })
-  mock.store(on, store)
+  if (live) {
+    // 테스트가 store 를 직접 바꾸면 그대로 읽힘 (다른 창이 저장소에 쓴 상황)
+    on('store.get', (_: unknown, e: any) => ({ value: store[e.key] }))
+    on('store.set', (_: unknown, e: any) => {
+      store[e.key] = e.value
+      return { value: undefined }
+    })
+  } else mock.store(on, store)
   mock.env(on, env)
   on('command.register', () => ({ value: {} }))
   on('ui.open', () => ({ value: { isPlaced: true } }))
@@ -175,6 +182,37 @@ test('/rename 이 실패하면 다음 프롬프트에서 제목을 바꾼다', a
   expect((first as any).sessionTitle).toBe('회의록 정리')
   const second = await $.classic.UserPromptSubmit({ prompt: '다음' } as any)
   expect((second as any).sessionTitle).toBeUndefined()
+})
+
+test('다른 창에서 저장한 채팅방이 새로고침·탭 전환 때 보인다', async ($, on) => {
+  const store: Record<string, unknown> = {
+    rooms: [{ name: '로그인 버그', id: 'sess-A', cwd: '/repo', savedAt: 1 }],
+  }
+  engine(on, store, undefined, undefined, undefined, true)
+  on('ui.toast', () => ({ value: {} }))
+  await $.session.start({ cwd: '/repo', surface: 'terminal', isInteractive: true })
+
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  await ui.press({ key: 'tab-rooms' })
+  expect(await ui.find({ type: 'Button', key: 'room-1' })).toBeFalsy()
+
+  // 다른 창(세션)이 저장소에 새 채팅방을 씀 → 맨 아래 새로고침
+  store.rooms = [
+    { name: '로그인 버그', id: 'sess-A', cwd: '/repo', savedAt: 1 },
+    { name: '결제 리팩터링', id: 'sess-B', cwd: '/repo', savedAt: 2 },
+    { name: '문서 정리', id: 'sess-C', cwd: '/docs', savedAt: 3 },
+  ]
+  await ui.press({ key: 'refresh-rooms' })
+  expect(JSON.stringify(await ui.find({ type: 'Button', key: 'room-1' }))).toContain('결제 리팩터링')
+  expect(JSON.stringify(await ui.find({ type: 'Button', key: 'folder-0' }))).toContain('docs (1)')
+
+  // 다른 창에서 지운 것도 탭을 다시 열면 반영
+  store.rooms = [{ name: '로그인 버그', id: 'sess-A', cwd: '/repo', savedAt: 1 }]
+  await ui.press({ key: 'tab-usage' })
+  await ui.press({ key: 'tab-rooms' })
+  expect(await ui.find({ type: 'Button', key: 'room-1' })).toBeFalsy()
+  expect(await ui.find({ type: 'Button', key: 'folder-0' })).toBeFalsy()
+  await ui.unmount()
 })
 
 test('채팅방으로 이동하면 지금 표시가 한 번에 옮겨진다', async ($, on) => {

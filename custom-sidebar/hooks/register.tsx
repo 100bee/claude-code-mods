@@ -529,6 +529,8 @@ export const register: Register = on => {
     // (그리는 쪽이 tick을 읽으므로 값이 바뀌면 반드시 다시 그려짐. invalidate는 보조)
     $.clock.every(60_000, () => {
       void update($, tick, n => (n + 1) % 1_000_000).catch(() => {})
+      // 다른 창에서 만든 채팅방도 1분 안에 보이게
+      void loadRooms($).catch(() => {})
       $.ui.invalidate('ui.render')
     })
     // 넓은 터미널이면 자동으로 오른쪽에 붙음
@@ -857,7 +859,11 @@ export const register: Register = on => {
           hotkey={hotkey}
           plain
           dimColor
-          onPress={() => update($, tab, () => id)}
+          onPress={async () => {
+            await update($, tab, () => id)
+            // 다른 창에서 저장·삭제한 채팅방 반영 ('지금' 표시는 이동 직후 이전 ID가 나올 수 있어 건드리지 않음)
+            if (id === 'rooms') await loadRooms($).catch(() => {})
+          }}
         />
       )
 
@@ -1191,6 +1197,15 @@ export const register: Register = on => {
               })}
             </Box>
           )}
+          {/* 맨 아래: 다른 창·다른 폴더에서 저장·삭제한 채팅방까지 다시 불러옴 */}
+          <Button
+            key="refresh-rooms"
+            label="새로고침"
+            onPress={async () => {
+              await loadRooms($).catch(() => {})
+              $.ui.toast('채팅방 목록을 새로 불러왔어요')
+            }}
+          />
         </Box>
       )
     }
