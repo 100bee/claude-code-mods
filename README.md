@@ -91,7 +91,7 @@ chat-theme을 같이 쓰면 사이드바 강조색이 고른 팔레트를 따라
 
 ## waddle-duck
 
-<img src="docs/waddle-duck.svg" alt="프롬프트 위로 엄마 오리와 새끼 오리 세 마리가 걸어가는 모습" width="100%">
+<img src="docs/waddle-duck.svg" alt="계절별 오리 가족: 봄은 벚꽃과 날리는 꽃잎, 여름은 선글라스와 줄무늬 튜브에 물결, 가을은 베레모와 목도리에 낙엽 길, 겨울은 털모자와 목도리에 내리는 눈" width="100%">
 
 프롬프트를 보낸 뒤 답이 끝날 때까지 엄마 오리와 새끼 오리들이 왼쪽에서 오른쪽으로 걸어가고, 아래에 경과 시간이 보입니다. 끝나면 사라집니다. 터미널에서만 걷고 데스크톱 앱에서는 나오지 않습니다.
 
@@ -117,6 +117,8 @@ chat-theme을 같이 쓰면 고른 팔레트를 따라 계절 옷을 입고 바�
 
 ## 업데이트 · 끄기 · 지우기
 
+새 버전이 올라오면 셸에서 목록을 새로 받고, 쓰는 mod만 업데이트하세요. 업데이트한 뒤 Claude Code에서 `/reload-plugins`를 하거나 다시 시작하면 적용됩니다.
+
 ```sh
 claude plugin marketplace update claude-code-mods   # 새 버전 목록 받기
 claude plugin update custom-sidebar@claude-code-mods
@@ -125,6 +127,18 @@ claude plugin uninstall waddle-duck@claude-code-mods
 ```
 
 Claude Code 안에서는 `/plugin` → **Installed**에서도 켜고 끌 수 있습니다.
+
+<details>
+<summary>윈도우에서 예전에 waddle-duck을 설치했다면</summary>
+
+`waddle-duck`은 이제 맥용입니다. 윈도우에서는 지우고 윈도우용을 설치하세요. `/duck` 크기·새끼 수 설정은 다시 골라야 합니다.
+
+```sh
+claude plugin uninstall waddle-duck@claude-code-mods
+claude plugin install waddle-duck-windows --marketplace 100bee/claude-code-mods
+```
+
+</details>
 
 ## 새 mod 추가하기
 
