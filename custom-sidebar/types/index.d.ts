@@ -1,4 +1,4 @@
-export type Tab = 'usage' | 'rooms' | 'git' | 'notes' | 'activity'
+export type Tab = 'usage' | 'rooms' | 'git' | 'edit' | 'activity'
 
 // 활동 탭: 도구 호출 한 건
 export type Activity = {
@@ -58,7 +58,13 @@ export type GitInfo =
       files: GitFile[]
     }
 
-export type Note = { text: string; isDone: boolean }
+// 파일 탭: 파일을 누르면 어떤 프로그램으로 열지
+export type Opener = 'code' | 'idea' | 'notepad' | 'ask' | 'default'
+// 직접 추가한 프로그램: id 는 'custom:<숫자>', cmd 는 실행 파일 경로나 명령 이름
+export type CustomOpener = { id: string; label: string; cmd: string }
+
+// 파일 탭: 폴더 목록 한 줄
+export type EdEntry = { name: string; kind: 'file' | 'dir' | 'other'; size: number }
 
 export type Room = { name: string; id: string; cwd: string; savedAt: number }
 export type Here = { id: string; cwd: string }
@@ -74,7 +80,14 @@ declare module 'claude-code' {
       touched: Shaped<string[]>
       selected: string | null
       diff: string
-      notes: Shaped<Note[]>
+      edDir: string | null
+      edEntries: Shaped<EdEntry[]>
+      edOpener: string
+      edCustom: Shaped<CustomOpener[]>
+      edAdding: boolean
+      edFilter: string | null
+      edPrev: string | null
+      edScroll: number
       rooms: Shaped<Room[]>
       here: Shaped<Here | null>
       openFolders: Shaped<string[]>

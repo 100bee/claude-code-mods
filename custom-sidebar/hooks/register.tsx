@@ -1,7 +1,7 @@
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, Register } from 'claude-code'
+import type { EngineInterface, Register, RenderSurface } from 'claude-code'
 
-import type { Activity, GitFile, GitInfo, Here, Note, Now, Room, Span, Tab, UsageSnap, Worker } from '../types'
+import type { Activity, CustomOpener, EdEntry, GitFile, GitInfo, Here, Now, Opener, Room, Span, Tab, UsageSnap, Worker } from '../types'
 
 // ════════════════════════════════════════════════════════════
 //  설정: 여기만 고치면 경고 기준과 색이 바뀝니다
@@ -23,7 +23,9 @@ const LIMIT_WARN_AT = 80
 const LIMIT_DANGER_AT = 90
 // 프롬프트 캐시 유지 시간 기본값(분): 60 또는 5. 실제와 다르면 쓰다 보면 저절로 맞춰짐
 const CACHE_TTL_MIN = 60
-// 사이드바 폭이 이 칸 수 이상이면 두 칸 배치 (사용량 탭 좌우, 변경 탭 파일 목록 | diff)
+// 편집 탭 폴더 목록에 보일 최대 개수
+const ED_LIST_MAX = 80
+// 사이드바 폭이 이 칸 수 이상이면 두 칸 배치 (사용량 탭 좌우, 변경 탭 파일 목록 | diff, 편집 탭 목록 | 편집기)
 const WIDE_AT = 90
 const COL_GAP = 3
 
@@ -45,7 +47,23 @@ const git = atom({ plugin: 'custom-sidebar', key: 'git' } as const, null as GitI
 const touched = atom({ plugin: 'custom-sidebar', key: 'touched' } as const, [] as string[], { shape: 'touched-1' })
 const selected = atom({ plugin: 'custom-sidebar', key: 'selected' } as const, null as string | null)
 const diff = atom({ plugin: 'custom-sidebar', key: 'diff' } as const, '')
-const notes = atom({ plugin: 'custom-sidebar', key: 'notes' } as const, [] as Note[], { shape: 'notes-1' })
+// 파일 탭: 보고 있는 폴더와 그 폴더의 목록
+const edDir = atom({ plugin: 'custom-sidebar', key: 'edDir' } as const, null as string | null)
+const edEntries = atom({ plugin: 'custom-sidebar', key: 'edEntries' } as const, [] as EdEntry[], { shape: 'ed-entries-1' })
+// 파일을 누르면 어떤 프로그램으로 열지 (기본 VS Code, $.store에 기억)
+// 기본 프로그램 이름(Opener) 또는 직접 추가한 프로그램의 id('custom:…')
+const edOpener = atom({ plugin: 'custom-sidebar', key: 'edOpener' } as const, 'code' as string)
+// 직접 추가한 프로그램 목록 ($.store에 기억), 추가 입력칸을 보일지
+const edCustom = atom({ plugin: 'custom-sidebar', key: 'edCustom' } as const, [] as CustomOpener[], { shape: 'ed-custom-1' })
+const edAdding = atom({ plugin: 'custom-sidebar', key: 'edAdding' } as const, false)
+// $ 칸의 'ls *.java' 같은 이름 걸러 보기 (다른 폴더로 가면 풀림), 'cd -' 로 돌아갈 바로 전 폴더
+const edFilter = atom({ plugin: 'custom-sidebar', key: 'edFilter' } as const, null as string | null)
+const edPrev = atom({ plugin: 'custom-sidebar', key: 'edPrev' } as const, null as string | null)
+// $ 칸을 사이드바 맨 아래에 고정할 때 목록은 직접 스크롤: 맨 위에 보이는 항목 번호
+const edScroll = atom({ plugin: 'custom-sidebar', key: 'edScroll' } as const, 0)
+// 마지막으로 그릴 때 $ 칸을 맨 아래에 고정했는지, 그때 사이드바 높이 (휠·화살표를 직접 받을지 정함)
+let filesPinned = false
+let filesRows = 0
 const rooms = atom({ plugin: 'custom-sidebar', key: 'rooms' } as const, [] as Room[], { shape: 'rooms-1' })
 const openFolders = atom({ plugin: 'custom-sidebar', key: 'openFolders' } as const, [] as string[], { shape: 'open-1' })
 const here = atom({ plugin: 'custom-sidebar', key: 'here' } as const, null as Here | null, { shape: 'here-1' })
@@ -82,6 +100,15 @@ const CATEGORY_KO: Record<string, string> = {
   Messages: '대화 메시지',
 }
 const LIMIT_KO: Record<string, string> = { five_hour: '5시간', seven_day: '7일', spend_limit: '지출 한도' }
+
+// 사이드바 탭: 번호(사이드바 안 단축키이자 /side 번호), 이름
+const TABS: { id: Tab; num: string; label: string }[] = [
+  { id: 'usage', num: '1', label: '사용량' },
+  { id: 'rooms', num: '2', label: '채팅방' },
+  { id: 'git', num: '3', label: '변경' },
+  { id: 'activity', num: '4', label: '활동' },
+  { id: 'edit', num: '5', label: '파일' },
+]
 
 // ── 작은 도우미들 ──────────────────────────────────────────
 
@@ -189,6 +216,17 @@ const cellWidth = (str: string) => {
   return w
 }
 
+// n칸에 맞게 자르고 끝에 … (한글 2칸 계산)
+const fitCells = (s: string, n: number) => {
+  if (cellWidth(s) <= n) return s
+  let out = ''
+  for (const ch of s) {
+    if (cellWidth(out + ch) > n - 1) break
+    out += ch
+  }
+  return out + '…'
+}
+
 // 타임라인: 시간 구간들을 칸(cell)으로. 0 빈칸, 1 끝남, 2 실행 중, 3 실패
 type LaneSpan = { start: number; end?: number; state: 1 | 2 | 3 }
 function laneCells(spans: LaneSpan[], from: number, to: number, n: number): number[] {
@@ -290,22 +328,325 @@ async function loadDiff($: EngineInterface, path: string) {
   await update($, diff, () => text || '(변경 내용 없음)')
 }
 
-async function saveNotes($: EngineInterface, fn: (list: Note[]) => Note[]) {
-  await update($, notes, list => {
-    const next = fn(list)
-    void $.store.set('notes', next)
-    return next
-  })
+// ── 파일 탭: 폴더 목록. 파일을 누르면 확장자에 연결된 프로그램으로 엶 ────────
+
+const isRootDir = (p: string) => /^([A-Za-z]:)?\/?$/.test(normPath(p))
+const joinPath = (dir: string, name: string) => normPath(dir).replace(/\/+$/, '') + '/' + name
+function parentOf(p: string) {
+  const n = normPath(p).replace(/\/+$/, '')
+  const i = n.lastIndexOf('/')
+  if (i < 0) return n + '/'
+  const up = n.slice(0, i)
+  return up === '' ? '/' : /^[A-Za-z]:$/.test(up) ? up + '/' : up
+}
+const sizeText = (n: number) => (n < 1024 ? `${n}B` : n < 1024 * 1024 ? `${(n / 1024).toFixed(1)}K` : `${(n / 1048576).toFixed(1)}M`)
+
+async function refreshDir($: EngineInterface, dir?: string) {
+  const d = dir ?? (await read($, edDir)) ?? (await $.session.cwd())
+  const list = await $.fs.list(d)
+  const entries: EdEntry[] = list
+    .map(x => ({ name: x.name, kind: x.kind, size: x.size }))
+    .sort((a, b) =>
+      a.kind === 'dir' && b.kind !== 'dir' ? -1 : a.kind !== 'dir' && b.kind === 'dir' ? 1 : a.name.localeCompare(b.name),
+    )
+  const before = await read($, edDir)
+  if (before && before !== normPath(d)) {
+    await update($, edPrev, () => before)
+    await update($, edFilter, () => null)
+    await update($, edScroll, () => 0)
+  }
+  await update($, edDir, () => normPath(d))
+  await update($, edEntries, () => entries)
 }
 
-async function loadNotes($: EngineInterface) {
-  const saved = await $.store.get('notes')
-  if (Array.isArray(saved)) {
-    const list = saved.filter(
-      (n): n is Note => typeof n?.text === 'string' && typeof n?.isDone === 'boolean',
-    )
-    await update($, notes, () => list)
+// 'ls *.java' 의 패턴 → 이름 전체와 맞춰 보는 정규식 (대소문자 무시)
+const globRe = (pat: string) =>
+  new RegExp('^' + pat.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.') + '$', 'i')
+
+// 경로 칸에 친 것 → 절대 경로: ~ 는 홈, 상대 경로는 지금 폴더 기준, . 과 .. 정리, 따옴표·역슬래시 허용
+function resolveTyped(typed: string, dir: string, home: string) {
+  let p = normPath(typed.trim().replace(/^["']+|["']+$/g, '').trim())
+  if (!p) return ''
+  if (p.startsWith('//')) return p // 네트워크 경로는 손대지 않음 (열 수 없으면 알려 줌)
+  if (p === '~' || p.startsWith('~/')) p = normPath(home).replace(/\/+$/, '') + p.slice(1)
+  else if (/^[A-Za-z]:$/.test(p)) p += '/'
+  else if (!/^([A-Za-z]:)?\//.test(p)) p = joinPath(dir, p)
+  const m = p.match(/^([A-Za-z]:)?(\/.*)$/)
+  if (!m) return p
+  const parts: string[] = []
+  for (const s of m[2]!.split('/')) {
+    if (!s || s === '.') continue
+    if (s === '..') parts.pop()
+    else parts.push(s)
   }
+  return (m[1] ?? '') + '/' + parts.join('/')
+}
+
+// $ 칸에서 쓸 수 있는 명령 (help 로 보여 줌). 지우기(rm)처럼 되돌릴 수 없는 건 넣지 않음
+const FILE_CMDS = 'cd 폴더 · cd - · ls [*.java] · pwd · open [파일|.] · touch 파일 · mkdir 폴더'
+
+// 폴더를 탐색기·Finder·파일 관리자로 엶
+async function openFolder($: EngineInterface, p: string, isWin: boolean) {
+  if (isWin) {
+    // explorer 는 잘 열려도 종료 코드 1 을 돌려줌 → 결과는 보지 않음
+    await $.process.run(['explorer.exe', p.replace(/\//g, '\\')], { timeoutMs: 15_000 }).catch(() => null)
+    return true
+  }
+  const isMac = (await $.process.run(['uname'], { timeoutMs: 5_000 }).catch(() => null))?.stdout.trim() === 'Darwin'
+  const r = await $.process.run([isMac ? 'open' : 'xdg-open', p], { timeoutMs: 15_000 }).catch(() => null)
+  return r?.exitCode === 0
+}
+
+async function makeDir($: EngineInterface, p: string, isWin: boolean) {
+  const r = isWin
+    ? await $.process
+        .run(
+          ['powershell.exe', '-NoProfile', '-NonInteractive', '-EncodedCommand', encodePowerShell(`New-Item -ItemType Directory -Force -Path '${psQuote(p.replace(/\//g, '\\'))}' | Out-Null`)],
+          { timeoutMs: 15_000 },
+        )
+        .catch(() => null)
+    : await $.process.run(['mkdir', '-p', '--', p], { timeoutMs: 15_000 }).catch(() => null)
+  return r?.exitCode === 0
+}
+
+// $ 칸: 파일 탭에서 쓰는 작은 명령들. 다른 명령은 실행하지 않음
+async function runFileCmd($: EngineInterface, typed: string, surface?: RenderSurface) {
+  const t = typed.trim()
+  if (!t) return
+  const m = t.match(/^(cd|ls|dir|pwd|open|touch|mkdir|help|\?)(?=$|\s|\.)\s*(.*)$/i)
+  if (!m) {
+    $.ui.toast(`이 칸에선 이것만 돼요: ${FILE_CMDS}`)
+    return
+  }
+  const cmd = m[1]!.toLowerCase()
+  const isList = cmd === 'ls' || cmd === 'dir'
+  let arg = m[2]!.trim()
+  if (isList) arg = arg.replace(/^(-\S*\s*)+/, '').trim() // ls -la 같은 옵션은 무시
+  const dir = (await read($, edDir)) ?? normPath(await $.session.cwd())
+  const isWin = (await $.env.get('OS')) === 'Windows_NT'
+  const failed = () => $.ui.toast('폴더를 열지 못했어요')
+
+  if (cmd === 'help' || cmd === '?') {
+    $.ui.toast(FILE_CMDS)
+    return
+  }
+  if (cmd === 'pwd') {
+    const shown = isWin ? dir.replace(/\//g, '\\') : dir
+    await $.ui.copy({ text: shown, surface }).catch(() => {})
+    $.ui.toast(`복사했어요: ${shown}`)
+    return
+  }
+  if (cmd === 'cd' && !arg) {
+    await refreshDir($, normPath(await $.session.cwd())).catch(failed)
+    return
+  }
+  if (cmd === 'cd' && arg === '-') {
+    const prev = await read($, edPrev)
+    if (!prev) $.ui.toast('바로 전 폴더가 없어요')
+    else await refreshDir($, prev).catch(failed)
+    return
+  }
+  if (isList && !arg) {
+    await update($, edFilter, () => null)
+    await update($, edScroll, () => 0)
+    await refreshDir($, dir).catch(failed)
+    return
+  }
+  if (isList && /[*?]/.test(arg) && !/[\\/]/.test(arg)) {
+    await refreshDir($, dir).catch(() => {})
+    await update($, edFilter, () => arg.replace(/^["']+|["']+$/g, ''))
+    await update($, edScroll, () => 0)
+    return
+  }
+  if ((cmd === 'touch' || cmd === 'mkdir') && !arg) {
+    $.ui.toast(`${cmd} 다음에 이름을 적어 주세요 (예: ${cmd === 'touch' ? 'touch memo.txt' : 'mkdir docs'})`)
+    return
+  }
+
+  const home = (isWin ? await $.env.get('USERPROFILE') : undefined) ?? (await $.env.get('HOME')) ?? ''
+  const target = arg || '.'
+  if (target.startsWith('~') && !home) {
+    $.ui.toast('홈 폴더를 찾지 못했어요. 전체 경로로 적어 주세요')
+    return
+  }
+  const p = resolveTyped(target, dir, home)
+  const st = await $.fs.stat(p).catch(() => null)
+  const has = st && st.kind !== 'other'
+
+  if (cmd === 'touch' || cmd === 'mkdir') {
+    if (has) {
+      $.ui.toast(`이미 있어요: ${arg}`)
+      return
+    }
+    const ok =
+      cmd === 'touch'
+        ? await $.fs.write(p, '').then(
+            () => true,
+            () => false,
+          )
+        : await makeDir($, p, isWin)
+    if (!ok) {
+      $.ui.toast(`만들지 못했어요: ${arg}`)
+      return
+    }
+    await refreshDir($, dir).catch(() => {})
+    $.ui.toast(`${cmd === 'touch' ? '파일을' : '폴더를'} 만들었어요: ${arg}`)
+    return
+  }
+  if (!has) {
+    $.ui.toast(`그런 ${cmd === 'open' ? '파일이나 폴더가' : '폴더가'} 없어요 (또는 권한이 없어요): ${target}`)
+    return
+  }
+  if (cmd === 'open') {
+    if (st!.kind === 'file') await openExternal($, p)
+    else if (!(await openFolder($, p, isWin))) $.ui.toast('폴더를 열 프로그램을 찾지 못했어요')
+    return
+  }
+  if (st!.kind !== 'dir') {
+    $.ui.toast(`폴더가 아니에요: ${arg} (파일은 open ${arg} 또는 목록에서 누르면 열려요)`)
+    return
+  }
+  await refreshDir($, p).catch(failed)
+}
+
+// 파일을 누르면 어떤 프로그램으로 열지 (파일 탭 위에서 고름, $.store에 기억)
+const OPENER_LABEL: Record<Opener, string> = {
+  code: 'VS Code',
+  idea: 'IntelliJ',
+  notepad: '메모장',
+  ask: '매번 고르기',
+  default: '기본 연결 프로그램',
+}
+
+const isBuiltinOpener = (o: string): o is Opener => Object.prototype.hasOwnProperty.call(OPENER_LABEL, o)
+const openerLabel = (o: string, custom: CustomOpener[]) =>
+  isBuiltinOpener(o) ? OPENER_LABEL[o] : custom.find(c => c.id === o)?.label ?? OPENER_LABEL.code
+const psQuote = (s: string) => s.replace(/'/g, "''")
+
+// 직접 추가하려는 프로그램이 이 컴퓨터에 있는지 (실행 파일 경로이거나 PATH의 명령, 맥은 앱 이름도)
+async function programExists($: EngineInterface, cmd: string) {
+  if ((await $.env.get('OS')) === 'Windows_NT') {
+    const script = `$c = '${psQuote(cmd)}'\nif ((Test-Path -LiteralPath $c -PathType Leaf) -or (Get-Command $c -ErrorAction SilentlyContinue)) { exit 0 } else { exit 5 }`
+    const r = await $.process
+      .run(['powershell.exe', '-NoProfile', '-NonInteractive', '-EncodedCommand', encodePowerShell(script)], { timeoutMs: 15_000 })
+      .catch(() => null)
+    return r?.exitCode === 0
+  }
+  const sh = await $.process.run(['sh', '-c', 'command -v "$1" >/dev/null 2>&1 || [ -e "$1" ]', 'sh', cmd], { timeoutMs: 5_000 }).catch(() => null)
+  if (sh?.exitCode === 0) return true
+  const app = await $.process.run(['open', '-Ra', cmd], { timeoutMs: 5_000 }).catch(() => null)
+  return app?.exitCode === 0
+}
+
+// '+ 프로그램 추가'에 친 경로·명령을 목록에 넣고 그걸로 고름
+async function addOpener($: EngineInterface, typed: string) {
+  const cmd = typed.trim().replace(/^["']|["']$/g, '')
+  if (!cmd) return false
+  const list = await read($, edCustom)
+  const same = list.find(c => c.cmd.toLowerCase() === cmd.toLowerCase())
+  if (!same && !(await programExists($, cmd))) {
+    $.ui.toast(`프로그램을 찾지 못했어요: ${cmd} (실행 파일 경로나 명령 이름을 확인하세요)`)
+    return false
+  }
+  const entry = same ?? {
+    id: `custom:${await $.clock.now()}`,
+    // 이름은 실행 파일 이름에서 (C:\…\sublime_text.exe → sublime_text, /Applications/Zed.app → Zed)
+    label: baseName(cmd).replace(/\.(exe|cmd|bat|app)$/i, '') || cmd,
+    cmd,
+  }
+  const next = same ? list : [...list, entry]
+  await update($, edCustom, () => next)
+  await $.store.set('edCustom', next)
+  await update($, edOpener, () => entry.id)
+  await $.store.set('edOpener', entry.id)
+  await update($, edAdding, () => false)
+  $.ui.toast(same ? `이미 있어요: ${entry.label}` : `열 프로그램에 추가했어요: ${entry.label}`)
+  return true
+}
+
+async function removeOpener($: EngineInterface, id: string) {
+  const next = (await read($, edCustom)).filter(c => c.id !== id)
+  await update($, edCustom, () => next)
+  await $.store.set('edCustom', next)
+  await update($, edOpener, () => 'code')
+  await $.store.set('edOpener', 'code')
+}
+
+// 파일 열기. 창을 띄우고 바로 돌아옴 (그 프로그램이 닫힐 때까지 기다리지 않음)
+//   VS Code: code 명령 (없으면 메모장) · IntelliJ: idea64/idea 명령, 없으면 흔한 설치 폴더에서 찾음 (없으면 메모장)
+//   메모장 · 매번 고르기: Windows '연결 프로그램' 창 · 기본: 확장자에 연결된 프로그램 · 직접 추가한 프로그램
+//   종료 코드 3 = VS Code 없음, 4 = IntelliJ 없음 (둘 다 메모장으로 대신 엶), 5 = 추가한 프로그램 없음
+async function openExternal($: EngineInterface, path: string) {
+  const custom = await read($, edCustom)
+  const picked = await read($, edOpener)
+  const mine = custom.find(c => c.id === picked)
+  // 지워진 프로그램을 가리키고 있으면 VS Code 로
+  const opener: Opener | 'custom' = mine ? 'custom' : isBuiltinOpener(picked) ? picked : 'code'
+  const label = mine ? mine.label : OPENER_LABEL[opener as Opener]
+  const isWin = (await $.env.get('OS')) === 'Windows_NT'
+  let code: number | null = null
+  if (isWin) {
+    const win = normPath(path).replace(/\//g, '\\').replace(/'/g, "''")
+    const script = [
+      `$p = '${win}'`,
+      `$q = '"' + $p + '"'`,
+      mine
+        ? `$c = '${psQuote(mine.cmd)}'\nif ((Test-Path -LiteralPath $c -PathType Leaf) -or (Get-Command $c -ErrorAction SilentlyContinue)) { Start-Process -FilePath $c -ArgumentList $q } else { exit 5 }`
+        : opener === 'code'
+        ? "if (Get-Command code -ErrorAction SilentlyContinue) { Start-Process code -ArgumentList @('--reuse-window', $q) -WindowStyle Hidden } else { Start-Process notepad.exe -ArgumentList $q; exit 3 }"
+        : opener === 'idea'
+          ? [
+              '$exe = (Get-Command idea64, idea -ErrorAction SilentlyContinue | Select-Object -First 1).Source',
+              'if (-not $exe) { $exe = Get-ChildItem "$env:ProgramFiles\\JetBrains", "${env:ProgramFiles(x86)}\\JetBrains", "$env:LOCALAPPDATA\\Programs", "$env:LOCALAPPDATA\\JetBrains\\Toolbox\\apps", "$env:ProgramFiles (Portable)" -Recurse -Depth 5 -Filter idea64.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName }',
+              'if ($exe) { Start-Process $exe -ArgumentList $q } else { Start-Process notepad.exe -ArgumentList $q; exit 4 }',
+            ].join('\n')
+        : opener === 'notepad'
+          ? 'Start-Process notepad.exe -ArgumentList $q'
+          : opener === 'ask'
+            ? "Start-Process rundll32.exe -ArgumentList ('shell32.dll,OpenAs_RunDLL ' + $p)"
+            : 'Start-Process -FilePath $p',
+    ].join('\n')
+    const r = await $.process
+      .run(['powershell.exe', '-NoProfile', '-NonInteractive', '-EncodedCommand', encodePowerShell(script)], { timeoutMs: 15_000 })
+      .catch(() => null)
+    code = r?.exitCode ?? null
+  } else {
+    const isMac = (await $.process.run(['uname'], { timeoutMs: 5_000 }).catch(() => null))?.stdout.trim() === 'Darwin'
+    const sys = isMac ? 'open' : 'xdg-open'
+    const run = async (argv: string[]) => (await $.process.run(argv, { timeoutMs: 15_000 }).catch(() => null))?.exitCode === 0
+    const tries: string[][] = mine
+      ? isMac
+        ? [['open', '-a', mine.cmd, path], [mine.cmd, path]]
+        : [[mine.cmd, path]]
+      : opener === 'code'
+        ? [['code', '--reuse-window', path]]
+        : opener === 'idea'
+          ? isMac
+            ? [['open', '-a', 'IntelliJ IDEA', path], ['open', '-a', 'IntelliJ IDEA CE', path], ['idea', path]]
+            : [['idea', path], ['idea.sh', path]]
+          : opener === 'notepad' && isMac
+            ? [['open', '-e', path]]
+            : [[sys, path]]
+    let ok = false
+    for (const argv of tries) if ((ok = await run(argv))) break
+    code = ok ? 0 : mine ? 5 : null
+    // VS Code·IntelliJ 가 없으면 메모장(TextEdit·xdg-open)으로
+    if (!ok && (opener === 'code' || opener === 'idea')) {
+      if (await run(isMac ? ['open', '-e', path] : [sys, path])) code = opener === 'code' ? 3 : 4
+    }
+  }
+  const name = baseName(path)
+  $.ui.toast(
+    code === 0
+      ? opener === 'ask'
+        ? `열 프로그램을 고르세요: ${name}`
+        : `${label}(으)로 열었어요: ${name}`
+      : code === 3 || code === 4
+        ? `${code === 3 ? 'VS Code' : 'IntelliJ'}를 찾지 못해 메모장으로 열었어요: ${name}`
+        : code === 5
+          ? `${label} 프로그램을 찾지 못했어요 (옮겼거나 지웠나요? 빼고 다시 추가하세요)`
+          : `열지 못했어요: ${name}`,
+  )
 }
 
 // ── 채팅방 (이름 붙인 세션 사이 이동) ─────────────────────
@@ -482,13 +823,22 @@ async function openElsewhere($: EngineInterface, room: Room) {
 }
 
 async function startup($: EngineInterface, at?: Here) {
-  await loadNotes($)
   await loadRooms($)
   if (at) await update($, here, () => at)
   else await refreshHere($).catch(() => {})
   booted = true
   void refreshUsage($).catch(() => {})
   void refreshGit($).catch(() => {})
+  if (!(await read($, edDir))) void refreshDir($).catch(() => {})
+  const savedCustom = await $.store.get('edCustom')
+  if (Array.isArray(savedCustom)) {
+    const list = savedCustom.filter(
+      (c): c is CustomOpener => typeof c?.id === 'string' && typeof c?.label === 'string' && typeof c?.cmd === 'string',
+    )
+    await update($, edCustom, () => list)
+  }
+  const savedOpener = await $.store.get('edOpener')
+  if (typeof savedOpener === 'string') await update($, edOpener, () => savedOpener)
 }
 
 async function openPane($: EngineInterface, byPerson: boolean) {
@@ -496,6 +846,21 @@ async function openPane($: EngineInterface, byPerson: boolean) {
   const r = await $.ui.open(byPerson ? { ...args, focus: true } : args)
   await update($, isOpen, () => r.isPlaced)
   return r
+}
+
+// $ 칸에서 Enter 뒤에도 키보드를 $ 칸에 둠 (이어서 cd·ls 를 칠 수 있게).
+// Enter 처리가 끝난 뒤 엔진이 키를 채팅 입력창으로 돌려주므로, 그 다음에 다시 가져옴.
+// 사이드바를 연 채로 다시 열면서 키를 받고, 링을 $ 칸으로. 안 되면 한 번 더 기다렸다 시도
+function keepCmdFocus($: EngineInterface) {
+  const grab = async () => {
+    // 키가 채팅 입력창에 있으면 사이드바가 다시 받고, 이미 사이드바에 있으면 그대로
+    await openPane($, true).catch(() => null)
+    const r = await $.ui.focus({ requestId: PANE, key: 'ed-cmd' }).catch(() => ({ deny: 'error' }))
+    return !('deny' in r) || !r.deny
+  }
+  $.clock.after(50, async () => {
+    if (!(await grab())) $.clock.after(250, () => void grab())
+  })
 }
 
 async function closePane($: EngineInterface) {
@@ -513,7 +878,8 @@ export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
       name: 'side',
-      description: '사이드바 열기/닫기',
+      description: '사이드바 열기/닫기 · /side 번호 (또는 탭 이름) 로 그 탭을 열고 키보드로 들어가기',
+      argumentHint: `[1~${TABS.length} | 탭 이름]`,
       immediate: true,
     })
     await $.command.register({
@@ -538,7 +904,7 @@ export const register: Register = on => {
     return next(e)
   })
 
-  // /clear, /resume, /branch 뒤에도 메모·데이터 다시 불러오기
+  // /clear, /resume, /branch 뒤에도 데이터 다시 불러오기
   on('classic.SessionStart', { source: ['clear', 'resume', 'fork'] }, async ($, e, next) => {
     // 이 시점에 직접 물어보면 이전 채팅 ID가 나올 수 있어서, 신호에 실린 ID를 씀
     await startup($, { id: e.session_id, cwd: e.cwd })
@@ -600,7 +966,20 @@ export const register: Register = on => {
     return result
   }).catch(($, e, next) => next(e))
 
-  on('command.run', { command: 'side' }, async $ => {
+  on('command.run', { command: 'side' }, async ($, e) => {
+    const arg = (e.args ?? '').trim()
+    // /side 번호, /side 탭이름: 그 탭으로 바꾸고 사이드바를 열어 키보드를 넘김 (Esc 로 입력창)
+    if (arg) {
+      const want = arg.toLowerCase()
+      const t = TABS.find(x => x.num === want || x.label === arg || x.id === want)
+      if (!t) return { text: `'${arg}' 탭이 없어요. ${TABS.map(x => `${x.num} ${x.label}`).join(' · ')}` }
+      await update($, tab, () => t.id)
+      if (t.id === 'rooms') await loadRooms($).catch(() => {})
+      if (t.id === 'edit') await refreshDir($).catch(() => {})
+      const r = await openPane($, true)
+      if (!r.isPlaced) return { text: '사이드바를 띄울 자리가 없어요. 터미널 창을 넓혀 주세요.' }
+      return { text: `사이드바 ${t.num}번 ${t.label} 탭 (Tab 이동 · Enter 선택 · Esc 입력창으로)` }
+    }
     const panes = await $.ui.panes()
     const shown = panes.some(p => p.id === PANE && p.isShown)
     if (shown) {
@@ -608,7 +987,7 @@ export const register: Register = on => {
       return { text: '사이드바를 닫았어요.' }
     }
     await openPane($, true)
-    return { text: '사이드바를 열었어요. (Esc: 프롬프트로, Ctrl+X X: 닫기)' }
+    return { text: `사이드바를 열었어요. (Esc: 입력창으로, /side 1~${TABS.length} 로 그 탭에 바로 이동)` }
   })
 
   on('command.run', { command: 'room' }, async ($, e) => {
@@ -651,6 +1030,18 @@ export const register: Register = on => {
     return cur && !samePath(cur.cwd, room.cwd)
       ? { text: `'${room.name}'은(는) ${folderName(room.cwd)} 폴더 채팅이라 새 창에서 엽니다…` }
       : { text: `'${room.name}'(으)로 이동합니다…` }
+  })
+
+  // 파일 탭에서 $ 칸을 맨 아래에 고정했을 때: 사이드바 전체 대신 파일 목록만 움직임
+  on('ui.scroll', { component: 'Pane', requestId: PANE }, async ($, e, next) => {
+    if (!filesPinned || (await read($, tab)) !== 'edit') return next(e)
+    const filter = await read($, edFilter)
+    const entries = await read($, edEntries)
+    const n = filter ? entries.filter(x => globRe(filter).test(x.name)).length : entries.length
+    // 끝까지 내려도 목록이 반쯤은 차 보이게
+    const max = Math.max(0, n - Math.max(1, Math.floor(filesRows / 2)))
+    await update($, edScroll, o => Math.max(0, Math.min(max, o + e.by)))
+    return {}
   })
 
   on('ui.close', async ($, e, next) => {
@@ -832,7 +1223,12 @@ export const register: Register = on => {
     // 사이드바를 넓히면 두 칸으로 나눔 (사용량: 왼쪽·오른쪽, 변경: 파일 목록·diff)
     const wide = width >= WIDE_AT
     const colW = wide ? Math.floor((width - COL_GAP) / 2) : width
-    const current = await read($, tab)
+    const saved = await read($, tab)
+    const current: Tab = TABS.some(t => t.id === saved) ? saved : 'usage'
+    // 파일 탭은 $ 칸을 사이드바 맨 아래에 고정: 사이드바 높이에 맞춰 그리고 목록만 직접 스크롤
+    const pinned = current === 'edit' && 'Input' in ui && e.props.placement === 'dock' && e.props.scroll.bodyRows >= 10
+    filesPinned = pinned
+    filesRows = e.props.scroll.bodyRows
     const now = await $.clock.now()
     const at = await read($, here)
     ensureLoaded($, at)
@@ -863,6 +1259,8 @@ export const register: Register = on => {
             await update($, tab, () => id)
             // 다른 창에서 저장·삭제한 채팅방 반영 ('지금' 표시는 이동 직후 이전 ID가 나올 수 있어 건드리지 않음)
             if (id === 'rooms') await loadRooms($).catch(() => {})
+            // 파일 탭: 그사이 생기거나 지워진 파일 반영
+            if (id === 'edit') await refreshDir($).catch(() => {})
           }}
         />
       )
@@ -1210,66 +1608,138 @@ export const register: Register = on => {
       )
     }
 
-    // ── 탭 4: 메모 ──
-    const notesTab = async () => {
-      const list = await read($, notes)
-      const doneCount = list.filter(n => n.isDone).length
-      return (
-        <Box flexDirection="column" rowGap={1}>
+    // ── 탭 5: 파일 (폴더 목록. 파일을 누르면 연결된 프로그램으로 열림) ──
+    const filesTab = async () => {
+      const dir = await read($, edDir)
+      const entries = await read($, edEntries)
+      if (!dir) {
+        return (
           <Box flexDirection="column">
-            {'Input' in ui && (
-              <ui.Input
-                key="new-note"
-                label="추가"
-                placeholder="메모 입력 후 Enter"
-                value=""
-                submitLabel="저장"
-                onSubmit={async (value: string) => {
-                  const text = value.trim()
-                  if (text) await saveNotes($, l => [...l, { text, isDone: false }])
-                }}
-              />
-            )}
-            {list.length === 0 && <Text dimColor>메모가 없어요.</Text>}
-            {list.map((n, i) => (
-              <Box flexDirection="row" columnGap={1}>
-                <Button
-                  key={'done-' + i}
-                  label={n.isDone ? '[✓]' : '[ ]'}
-                  plain
-                  onPress={() =>
-                    saveNotes($, l => l.map((x, j) => (j === i ? { ...x, isDone: !x.isDone } : x)))
-                  }
-                />
-                <Text dimColor={n.isDone} wrap="wrap">
-                  {n.text}
-                </Text>
-                <Button
-                  key={'del-' + i}
-                  label="x"
-                  plain
-                  dimColor
-                  onPress={() => saveNotes($, l => l.filter((_, j) => j !== i))}
-                />
-              </Box>
-            ))}
+            <Text dimColor>폴더를 불러오는 중…</Text>
+            <Button key="ed-refresh" label="새로고침" plain dimColor onPress={() => refreshDir($).catch(() => {})} />
           </Box>
-          {list.length > 0 && (
-            <Box flexDirection="row" columnGap={2}>
-              <Text dimColor>
-                {list.length - doneCount}개 남음 · {doneCount}개 완료
-              </Text>
-              {doneCount > 0 && (
-                <Button
-                  key="clear-done"
-                  label="완료 항목 지우기"
-                  plain
-                  dimColor
-                  onPress={() => saveNotes($, l => l.filter(x => !x.isDone))}
-                />
-              )}
+        )
+      }
+      const cwd = at?.cwd ? normPath(at.cwd).replace(/\/+$/, '') : ''
+      const shortOf = (p: string) =>
+        cwd && p.toLowerCase().startsWith(cwd.toLowerCase() + '/') ? p.slice(cwd.length + 1) : p
+      const filter = await read($, edFilter)
+      const visible = filter ? entries.filter(x => globRe(filter).test(x.name)) : entries
+      const offset = pinned ? Math.max(0, Math.min(await read($, edScroll), Math.max(0, visible.length - 1))) : 0
+      const shown = visible.slice(offset, offset + ED_LIST_MAX)
+      // 한 줄에 한 파일: 긴 이름은 …으로 자르고 크기는 오른쪽 5칸
+      const nameW = Math.max(8, width - 9)
+
+      // 열 프로그램: 기본 다섯 + 직접 추가한 것 + '+ 프로그램 추가…'
+      const custom = await read($, edCustom)
+      const picked = await read($, edOpener)
+      const adding = await read($, edAdding)
+      const pickedCustom = custom.find(c => c.id === picked)
+      const ADD = '__add'
+      // 운영체제마다 다른 예시·도움말
+      const os = adding
+        ? (await $.env.get('OS')) === 'Windows_NT'
+          ? 'win'
+          : (await $.process.run(['uname'], { timeoutMs: 5_000 }).catch(() => null))?.stdout.trim() === 'Darwin'
+            ? 'mac'
+            : 'linux'
+        : 'win'
+      const addHelp = {
+        win: { eg: 'C:\\Program Files\\Sublime Text\\sublime_text.exe 또는 subl', tip: "탐색기에서 파일을 Shift+우클릭 → '경로로 복사' 한 걸 붙여넣어도 돼요" },
+        mac: { eg: 'Zed · Sublime Text (앱 이름) 또는 subl', tip: "Finder에서 Option+우클릭 → '경로 이름 복사' 한 걸 붙여넣어도 돼요" },
+        linux: { eg: 'gedit · kate · subl (명령 이름)', tip: "터미널에서 'which 명령' 으로 경로를 확인할 수 있어요" },
+      }[os]
+      const openerUi = 'Select' in ui && (
+        <Box flexDirection="column">
+          <ui.Select
+            key="ed-opener"
+            label="열 프로그램"
+            value={pickedCustom || isBuiltinOpener(picked) ? picked : 'code'}
+            options={[
+              ...(Object.keys(OPENER_LABEL) as Opener[]).map(o => ({ value: o, label: OPENER_LABEL[o] })),
+              ...custom.map(c => ({ value: c.id, label: c.label })),
+              { value: ADD, label: '+ 프로그램 추가…' },
+            ]}
+            onSelect={async (value: string) => {
+              if (value === ADD) {
+                await update($, edAdding, () => true)
+                return
+              }
+              if (!isBuiltinOpener(value) && !custom.some(c => c.id === value)) return
+              await update($, edAdding, () => false)
+              await update($, edOpener, () => value)
+              await $.store.set('edOpener', value)
+            }}
+          />
+          {adding && 'Input' in ui && (
+            <Box flexDirection="column">
+              <ui.Input
+                key="ed-add"
+                label="추가"
+                placeholder={`실행 파일 경로나 명령 (예: ${addHelp.eg})`}
+                value=""
+                submitLabel="추가"
+                autoFocus
+                onSubmit={(value: string) => addOpener($, value).catch(() => $.ui.toast('추가하지 못했어요'))}
+              />
+              <Text dimColor>{addHelp.tip}</Text>
+              <Button key="ed-add-cancel" label="취소" plain dimColor onPress={() => update($, edAdding, () => false)} />
             </Box>
           )}
+          {pickedCustom && !adding && (
+            <Button
+              key="ed-remove"
+              label={`− ${pickedCustom.label} 목록에서 빼기`}
+              plain
+              dimColor
+              onPress={async () => {
+                await removeOpener($, pickedCustom.id)
+                $.ui.toast(`목록에서 뺐어요: ${pickedCustom.label}`)
+              }}
+            />
+          )}
+        </Box>
+      )
+      return (
+        <Box flexDirection="column">
+          {openerUi}
+          {heading(fitCells(shortOf(dir) || dir, width - 3))}
+          {filter && (
+            <Text dimColor wrap="truncate-end">
+              {`${filter} 만 보는 중 · ${visible.length}개 · ls 로 전부`}
+            </Text>
+          )}
+          {!isRootDir(dir) && (
+            <Button key="ed-up" label="▴ .." hotkey="u" plain dimColor onPress={() => refreshDir($, parentOf(dir)).catch(() => {})} />
+          )}
+          {visible.length === 0 && <Text dimColor>{filter ? '맞는 이름이 없어요' : '빈 폴더예요'}</Text>}
+          {offset > 0 && <Text dimColor>{`▲ 위에 ${offset}개 더 (휠·↑ 로 올리기)`}</Text>}
+          {shown.map((x, i) => {
+            const full = joinPath(dir, x.name)
+            return x.kind === 'dir' ? (
+              <Button
+                key={'ed-e-' + i}
+                label={fitCells('▸ ' + x.name + '/', width)}
+                plain
+                onPress={() => refreshDir($, full).catch(() => $.ui.toast('폴더를 열지 못했어요'))}
+              />
+            ) : (
+              <Box flexDirection="row" columnGap={1}>
+                <Button
+                  key={'ed-e-' + i}
+                  label={'  ' + fitCells(x.name, nameW)}
+                  plain
+                  dimColor={x.name.startsWith('.')}
+                  onPress={() => openExternal($, full).catch(() => $.ui.toast('열지 못했어요'))}
+                />
+                <Text dimColor>{sizeText(x.size).padStart(5)}</Text>
+              </Box>
+            )
+          })}
+          {visible.length > offset + ED_LIST_MAX && (
+            <Text dimColor>… {visible.length - offset - ED_LIST_MAX}개 더 (ls *.java 처럼 걸러 보기)</Text>
+          )}
+          <Button key="ed-refresh" label="새로고침" plain dimColor onPress={() => refreshDir($).catch(() => {})} />
         </Box>
       )
     }
@@ -1445,13 +1915,31 @@ export const register: Register = on => {
       )
     }
 
+    // 파일 탭 맨 아래 $ 칸 (구분선으로 입력칸인 걸 보이게): cd · ls · pwd · open · touch · mkdir · help
+    const fileCmd =
+      current === 'edit' && 'Input' in ui ? (
+        <Box flexDirection="column" flexShrink={0}>
+          <Text color={accent.soft}>{'─'.repeat(width)}</Text>
+          <ui.Input
+            key="ed-cmd"
+            label="$"
+            value=""
+            placeholder="cd 폴더 · ls · help"
+            onSubmit={async (value: string, ev) => {
+              await runFileCmd($, value, ev?.surface).catch(() => $.ui.toast('실행하지 못했어요'))
+              keepCmdFocus($)
+            }}
+          />
+        </Box>
+      ) : null
+
     const body =
       current === 'rooms'
         ? await roomsTab()
         : current === 'git'
           ? await gitTab()
-          : current === 'notes'
-            ? await notesTab()
+          : current === 'edit'
+            ? await filesTab()
             : current === 'activity'
               ? await activityTab()
               : await usageTab()
@@ -1542,19 +2030,32 @@ export const register: Register = on => {
       </Box>
     )
 
-    return (
-      <Box flexDirection="column">
+    const top = (
+      <Box flexDirection="column" flexShrink={0}>
         {header}
         {status}
         <Box flexDirection="row" columnGap={2} flexWrap="wrap">
-          {tabButton('usage', '사용량', '1')}
-          {tabButton('rooms', '채팅방', '2')}
-          {tabButton('git', '변경', '3')}
-          {tabButton('activity', '활동', '4')}
-          {tabButton('notes', '메모', '5')}
+          {TABS.map(t => tabButton(t.id, t.label, t.num))}
         </Box>
         <Text color={accent.soft}>{'─'.repeat(width)}</Text>
         {body}
+      </Box>
+    )
+    // 고정: 사이드바 높이만큼 그리고, 위쪽은 넘치면 잘라 내고, $ 칸은 늘 맨 아래
+    if (pinned) {
+      return (
+        <Box key="pane-pinned" flexDirection="column" height={e.props.scroll.bodyRows}>
+          <Box flexDirection="column" flexGrow={1} flexShrink={1} overflow="hidden">
+            {top}
+          </Box>
+          {fileCmd}
+        </Box>
+      )
+    }
+    return (
+      <Box flexDirection="column">
+        {top}
+        {fileCmd}
       </Box>
     )
   })

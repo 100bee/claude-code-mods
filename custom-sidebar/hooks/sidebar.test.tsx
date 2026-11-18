@@ -78,7 +78,7 @@ function engine(on: any, store: Record<string, unknown> = {}, commands = ['renam
   return clock
 }
 
-test('네 탭이 터미널·데스크톱에서 그려진다', async ($, on) => {
+test('다섯 탭이 터미널·데스크톱에서 그려진다', async ($, on) => {
   engine(on)
   await $.session.start({ cwd: '/repo', surface: 'terminal', isInteractive: true })
 
@@ -100,12 +100,9 @@ test('네 탭이 터미널·데스크톱에서 그려진다', async ($, on) => {
     await ui.input({ key: 'room-name', text: '로그인 버그' })
     expect(await ui.find({ type: 'Button', key: 'room-0' })).toBeTruthy()
 
-    await ui.press({ key: 'tab-notes' })
-    await ui.input({ key: 'new-note', text: '배포 전 체크' })
-    expect(await ui.find({ type: 'Text', text: /배포 전 체크/ })).toBeTruthy()
-    await ui.press({ key: 'done-0' })
-    expect(await ui.find({ type: 'Button', key: 'clear-done' })).toBeTruthy()
-    await ui.press({ key: 'clear-done' })
+    await ui.press({ key: 'tab-edit' })
+    // 파일 시스템을 흉내 내지 않은 테스트라 폴더를 못 읽은 상태 (파일 탭은 files.test.tsx)
+    expect(await ui.find({ type: 'Text', text: /폴더/ })).toBeTruthy()
 
     await ui.press({ key: 'tab-usage' })
     await ui.unmount()
