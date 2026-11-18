@@ -15,7 +15,7 @@ const PALETTE: Record<string, number> = {
   K: 0x1a1a1a, // 눈
 }
 
-type Size = 's' | 'm' | 'l'
+type Size = 'm' | 'l'
 type Frames = { width: number; frames: string[][] }
 // height: 모든 프레임의 줄 수(픽셀, 짝수). gap: 오리 사이 간격(칸)
 type Family = { height: number; gap: number; mom: Frames; baby: Frames }
@@ -25,49 +25,8 @@ const tilt = (rows: string[], headRows: number) =>
   rows.map((row, i) => (i < headRows ? row.slice(1) + '.' : row))
 const blanks = (n: number, width: number) => Array<string>(n).fill('.'.repeat(width))
 
-// ── S: 4픽셀 높이, 터미널 2줄 ─────────────────────────────
-const S: Family = {
-  height: 4,
-  gap: 1,
-  mom: {
-    width: 6,
-    frames: [
-      ['...YKO', 'YYYYY.', '.YYY..', '.O..O.'],
-      ['..YKO.', 'YYYYY.', '.YYY..', '..OO..'],
-    ],
-  },
-  baby: {
-    width: 4,
-    frames: [
-      [...blanks(1, 4), '..BO', 'BBB.', 'O.O.'],
-      [...blanks(1, 4), '.BO.', 'BBB.', '.OO.'],
-    ],
-  },
-}
-
-// ── M: 8픽셀 높이, 터미널 4줄 ─────────────────────────────
-const M_BODY = ['....YYY.', '....YKYO', 'Y..YYYY.', 'YYYWWYY.', '.YYYYY..']
-const M: Family = {
-  height: 8,
-  gap: 1,
-  mom: {
-    width: 8,
-    frames: [
-      [...blanks(2, 8), ...M_BODY, '..O..O..'],
-      [...blanks(1, 8), ...tilt(M_BODY, 2), '...O.O..', '...O.OO.'],
-    ],
-  },
-  baby: {
-    width: 5,
-    frames: [
-      [...blanks(4, 5), '..BKO', 'BBBB.', '.BBB.', '.O.O.'],
-      [...blanks(4, 5), '.BKO.', 'BBBB.', '.BBB.', '..OO.'],
-    ],
-  },
-}
-
-// ── L: 12픽셀 높이, 터미널 6줄 ────────────────────────────
-const L_BODY = [
+// ── M: 12픽셀 높이 (예전 L) ──────────────────────────────
+const M_BODY = [
   '......YYY...',
   '.....YYYYY..',
   '.....YYKYOO.',
@@ -78,14 +37,14 @@ const L_BODY = [
   '.YYYYYYYYY..',
   '..YYYYYYY...',
 ]
-const L: Family = {
+const M: Family = {
   height: 12,
   gap: 2,
   mom: {
     width: 12,
     frames: [
-      [...blanks(2, 12), ...L_BODY, '...OO..O....'],
-      [...blanks(1, 12), ...tilt(L_BODY, 4), '....O...O...', '....O...OO..'],
+      [...blanks(2, 12), ...M_BODY, '...OO..O....'],
+      [...blanks(1, 12), ...tilt(M_BODY, 4), '....O...O...', '....O...OO..'],
     ],
   },
   baby: {
@@ -97,9 +56,43 @@ const L: Family = {
   },
 }
 
-const FAMILIES: Record<Size, Family> = { s: S, m: M, l: L }
-const SIZE_NAMES: Record<Size, string> = { s: '작은', m: '중간', l: '큰' }
-const isSize = (v: unknown): v is Size => v === 's' || v === 'm' || v === 'l'
+// ── L: 16픽셀 높이, 더 세밀하게 ───────────────────────────
+const L_BODY = [
+  '.........YYYY...',
+  '........YYYYYY..',
+  '........YYYYKYOO',
+  '........YYYYYYOO',
+  '.........YYYYY..',
+  'Y.......YYYYY...',
+  'YY....YYYYYYY...',
+  'YYYYYYYYYYYYYY..',
+  'YYYYWWWWWYYYYY..',
+  '.YYYYWWWWYYYYY..',
+  '..YYYYYYYYYYY...',
+  '....YYYYYYYY....',
+]
+const L: Family = {
+  height: 16,
+  gap: 2,
+  mom: {
+    width: 16,
+    frames: [
+      [...blanks(2, 16), ...L_BODY, '.....O....O.....', '....OO...OO.....'],
+      [...blanks(1, 16), ...tilt(L_BODY, 5), '......O...O.....', '......O...O.....', '......O...OO....'],
+    ],
+  },
+  baby: {
+    width: 8,
+    frames: [
+      [...blanks(8, 8), '....BBB.', '...BBBKO', '...BBBB.', 'B..BBBB.', 'BBBBBBB.', 'BBBBBBB.', '.BBBBB..', '..O..O..'],
+      [...blanks(8, 8), '...BBB..', '..BBBKO.', '..BBBB..', 'B..BBBB.', 'BBBBBBB.', 'BBBBBBB.', '.BBBBB..', '...OO...'],
+    ],
+  },
+}
+
+const FAMILIES: Record<Size, Family> = { m: M, l: L }
+const SIZE_NAMES: Record<Size, string> = { m: '중간', l: '큰' }
+const isSize = (v: unknown): v is Size => v === 'm' || v === 'l'
 const isBabies = (v: unknown): v is number =>
   typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 3
 
@@ -164,7 +157,7 @@ export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
       name: 'duck',
-      description: '오리 설정: /duck on|off, /duck s|m|l 크기, /duck 0~3 새끼 수',
+      description: '오리 설정: /duck on|off, /duck m|l 크기, /duck 0~3 새끼 수',
       immediate: true,
     })
     const savedSize = await $.store.get('size')
@@ -190,7 +183,7 @@ export const register: Register = on => {
       babies = Number(want)
       await $.store.set('babies', babies)
     } else {
-      return { text: `지금은 ${enabled ? describe() : '꺼진 상태'}예요. 켜기/끄기는 /duck on, off, 크기는 /duck s, m, l, 새끼 수는 /duck 0~3` }
+      return { text: `지금은 ${enabled ? describe() : '꺼진 상태'}예요. 켜기/끄기는 /duck on, off, 크기는 /duck m, l, 새끼 수는 /duck 0~3` }
     }
     $.ui.invalidate('ui.render')
     return { text: `${describe()}로 바꿨어요. 꽥!` }
