@@ -117,13 +117,53 @@ chat-theme을 같이 쓰면 고른 팔레트를 따라 계절 옷을 입고 바�
 
 ## 업데이트 · 끄기 · 지우기
 
-새 버전이 올라오면 셸에서 목록을 새로 받고, 쓰는 mod만 업데이트하세요. 업데이트한 뒤 Claude Code에서 `/reload-plugins`를 하거나 다시 시작하면 적용됩니다.
+### 업데이트
+
+`claude plugin update`는 mod를 하나씩만 받아서, 전부 한 번에 올리는 명령은 없습니다. 셸에서 아래 순서대로 하세요.
+
+**1. 새 버전 목록 받기** (먼저 한 번)
 
 ```sh
-claude plugin marketplace update claude-code-mods   # 새 버전 목록 받기
-claude plugin update custom-sidebar@claude-code-mods
+claude plugin marketplace update claude-code-mods
+```
+
+**2. 쓰는 mod 업데이트하기** (설치한 것만)
+
+| mod | 명령 |
+|---|---|
+| custom-sidebar | `claude plugin update custom-sidebar@claude-code-mods` |
+| chat-theme | `claude plugin update chat-theme@claude-code-mods` |
+| waddle-duck (맥) | `claude plugin update waddle-duck@claude-code-mods` |
+| waddle-duck-windows (윈도우) | `claude plugin update waddle-duck-windows@claude-code-mods` |
+
+**3. 적용하기:** Claude Code에서 `/reload-plugins`를 하거나 다시 시작합니다.
+
+<details>
+<summary>세 개를 한 번에 업데이트하기</summary>
+
+맥 (터미널):
+
+```sh
+claude plugin marketplace update claude-code-mods
+for m in custom-sidebar chat-theme waddle-duck; do claude plugin update "$m@claude-code-mods"; done
+```
+
+윈도우 (PowerShell):
+
+```powershell
+claude plugin marketplace update claude-code-mods
+"custom-sidebar","chat-theme","waddle-duck-windows" | % { claude plugin update "$_@claude-code-mods" }
+```
+
+설치하지 않은 mod는 목록에서 빼세요.
+
+</details>
+
+### 끄기 · 지우기
+
+```sh
 claude plugin disable chat-theme@claude-code-mods   # 잠깐 끄기 (enable로 다시 켜기)
-claude plugin uninstall waddle-duck@claude-code-mods
+claude plugin uninstall chat-theme@claude-code-mods  # 지우기
 ```
 
 Claude Code 안에서는 `/plugin` → **Installed**에서도 켜고 끌 수 있습니다.
