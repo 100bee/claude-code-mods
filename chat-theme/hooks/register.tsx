@@ -195,13 +195,15 @@ export const register: Register = on => {
   }
 
   on('ui.render', { component: 'UserMessage' }, async ($, e, next) => {
-    if (!isOn) return next(e)
+    // 데스크톱 앱에서는 감싸지 않고 앱이 그리는 그대로
+    if (!isOn || e.surface === 'desktop') return next(e)
     const theirs = await next(e)
     return frame($.ui.resolve(e), e.viewport?.columns, theirs, 'user')
   })
 
   on('ui.render', { component: 'AssistantMessage' }, async ($, e, next) => {
-    if (!isOn) return next(e)
+    // 데스크톱 앱에서는 감싸지 않고 앱이 그리는 그대로
+    if (!isOn || e.surface === 'desktop') return next(e)
     const theirs = await next(e)
     return frame($.ui.resolve(e), e.viewport?.columns, theirs, 'claude')
   })

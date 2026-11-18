@@ -16,7 +16,12 @@
     {
       "name": "waddle-duck",
       "source": "./waddle-duck",
-      "description": "Claude가 작업하는 동안 프롬프트 위에서 픽셀 오리 가족이 뒤뚱뒤뚱 걸어갑니다"
+      "description": "맥 터미널용: Claude가 작업하는 동안 프롬프트 위에서 픽셀 오리 가족이 뒤뚱뒤뚱 걸어갑니다"
+    },
+    {
+      "name": "waddle-duck-windows",
+      "source": "./waddle-duck-windows",
+      "description": "윈도우 터미널용: Claude가 작업하는 동안 프롬프트 위에서 픽셀 오리 가족이 뒤뚱뒤뚱 걸어갑니다"
     }
   ]
 }

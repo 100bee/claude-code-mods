@@ -35,6 +35,17 @@ for (const style of ['box', 'line'] as const) {
   })
 }
 
+test('데스크톱 앱에서는 감싸지 않는다', async ($, on) => {
+  engine(on, { palette: 'spring', style: 'box', isOn: true })
+  await $.session.start({ cwd: '/repo', surface: 'desktop', isInteractive: true })
+  for (const row of [USER, CLAUDE]) {
+    const ui = await $.ui.mount({ ...row, surface: 'desktop' })
+    expect(await ui.find({ type: 'Box' })).toBeFalsy()
+    expect(await ui.find({ type: 'Text', text: row.props.text })).toBeTruthy()
+    await ui.unmount()
+  }
+})
+
 test('예전 bubble 설정이 남아 있어도 내 메시지는 왼쪽 정렬', async ($, on) => {
   engine(on, { style: 'box', layout: 'bubble', isOn: true })
   await $.session.start({ cwd: '/repo', surface: 'terminal', isInteractive: true })

@@ -12,7 +12,7 @@
 |---|---|---|
 | [**custom-sidebar**](#custom-sidebar) | 오른쪽 사이드바: 컨텍스트·한도·비용, 프롬프트 캐시, 채팅방, Git 변경, 활동, 메모 | `/side` `/room` |
 | [**chat-theme**](#chat-theme) | 내 메시지와 Claude 답변을 색 있는 상자로 감싸 채팅처럼 보이게 | `/theme-chat` |
-| [**waddle-duck**](#waddle-duck) | Claude가 일하는 동안 프롬프트 위로 픽셀 오리 가족이 걸어감 | `/duck` |
+| [**waddle-duck**](#waddle-duck) | Claude가 일하는 동안 프롬프트 위로 픽셀 오리 가족이 걸어감 (맥용 · 윈도우용 `waddle-duck-windows`) | `/duck` |
 
 ## 설치
 
@@ -21,7 +21,8 @@ Claude Code 터미널의 프롬프트에 붙여넣으세요. 원하는 것만 �
 ```
 /plugin install custom-sidebar --marketplace 100bee/claude-code-mods
 /plugin install chat-theme --marketplace 100bee/claude-code-mods
-/plugin install waddle-duck --marketplace 100bee/claude-code-mods
+/plugin install waddle-duck --marketplace 100bee/claude-code-mods          # 맥
+/plugin install waddle-duck-windows --marketplace 100bee/claude-code-mods  # 윈도우
 ```
 
 1. 처음 한 번 `Add marketplace?`가 뜨면 `y`
@@ -73,7 +74,7 @@ chat-theme을 같이 쓰면 사이드바 강조색이 고른 팔레트를 따라
 
 <img src="docs/chat-theme.svg" alt="내 메시지는 하늘색 상자, Claude 답변은 주황 상자로 감싼 대화와 팔레트 5개" width="100%">
 
-메시지 내용(마크다운, 코드 블록, 표)은 Claude Code가 그리는 그대로 두고 바깥만 감쌉니다.
+메시지 내용(마크다운, 코드 블록, 표)은 Claude Code가 그리는 그대로 두고 바깥만 감쌉니다. 터미널에서만 동작하고 데스크톱 앱에서는 감싸지 않습니다.
 
 | 명령 | 하는 일 |
 |---|---|
@@ -92,16 +93,23 @@ chat-theme을 같이 쓰면 사이드바 강조색이 고른 팔레트를 따라
 
 <img src="docs/waddle-duck.svg" alt="프롬프트 위로 엄마 오리와 새끼 오리 세 마리가 걸어가는 모습" width="100%">
 
-프롬프트를 보낸 뒤 답이 끝날 때까지 엄마 오리와 새끼 오리들이 왼쪽에서 오른쪽으로 걸어가고, 아래에 경과 시간이 보입니다. 끝나면 사라집니다. 데스크톱 앱에서는 🐥 🐥 🐥 🦆 글자가 걸어갑니다.
+프롬프트를 보낸 뒤 답이 끝날 때까지 엄마 오리와 새끼 오리들이 왼쪽에서 오른쪽으로 걸어가고, 아래에 경과 시간이 보입니다. 끝나면 사라집니다. 터미널에서만 걷고 데스크톱 앱에서는 나오지 않습니다.
+
+운영체제마다 하나만 설치하세요 (둘 다 `/duck` 명령을 씁니다).
+
+| | 맥: `waddle-duck` | 윈도우: `waddle-duck-windows` |
+|---|---|---|
+| 그리는 방식 | 픽셀마다 색칠한 공백 2칸 | 반칸 블록(▀ ▄), 한 줄에 2픽셀 |
+| 크기 `s` · `m` · `l` | 4 · 8 · 12줄 | 2 · 4 · 6줄 |
 
 | 명령 | 하는 일 |
 |---|---|
-| `/duck s` · `m` · `l` | 오리 크기 (4 · 8 · 12줄, 기본 `m`) |
+| `/duck s` · `m` · `l` | 오리 크기 (기본 `m`) |
 | `/duck 0` ~ `/duck 3` | 새끼 오리 수 (기본 3마리) |
 | `/duck on` · `off` | 켜기 · 끄기 |
 | `/duck` | 지금 설정 보기 |
 
-설정은 다음 세션에도 남습니다. 자세한 설명은 [waddle-duck/README.md](waddle-duck/README.md)에 있습니다.
+설정은 다음 세션에도 남습니다. 자세한 설명은 [waddle-duck/README.md](waddle-duck/README.md) · [waddle-duck-windows/README.md](waddle-duck-windows/README.md)에 있습니다.
 
 ---
 

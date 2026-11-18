@@ -214,6 +214,8 @@ export const register: Register = on => {
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     // 작업 중이 아니면 오리들은 쉬고, 다른 mod(token-weather 등)는 그대로
     if (!enabled || !e.props.isWorking || e.props.hasSurvey) return next(e)
+    // 터미널(CLI)에서만 걷고, 데스크톱 앱·VS Code·모바일에서는 그리지 않음
+    if (e.surface !== 'terminal') return next(e)
 
     const fam = FAMILIES[size]
     const now = await $.clock.now()
@@ -259,18 +261,7 @@ export const register: Register = on => {
       )
     }
 
-    // 픽셀 그리드가 없는 앱(데스크톱 등)에서는 글자로 걸어감
-    const { Box, Text } = ui
-    // 오른쪽으로 걸어가니 새끼들이 왼쪽(뒤), 엄마가 오른쪽(앞)
-    const parade = '🐥 '.repeat(babies) + '🦆'
-    const lane = Math.max(1, columns - (babies * 3 + 2) - 2)
-    const pos = step % lane
-    return (
-      <Box flexDirection="column">
-        <Text>{' '.repeat(pos) + parade}</Text>
-        <Text dimColor>{caption}</Text>
-        {theirs}
-      </Box>
-    )
+    // 픽셀 그리드가 없는 화면이면 오리 없이 그대로
+    return theirs
   })
 }
