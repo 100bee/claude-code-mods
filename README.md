@@ -6,6 +6,11 @@
 
 사이드바 · 채팅 테마 · 작업 중 오리
 
+[![Claude Code plugin](https://img.shields.io/badge/Claude_Code-plugin-D97757?style=flat-square&logo=anthropic&logoColor=white)](#설치)
+[![mods](https://img.shields.io/badge/mods-4-2563EB?style=flat-square)](#설치)
+[![GitHub stars](https://img.shields.io/github/stars/100bee/claude-code-mods?style=flat-square&color=111827)](https://github.com/100bee/claude-code-mods/stargazers)
+[![Last commit](https://img.shields.io/github/last-commit/100bee/claude-code-mods?style=flat-square&color=111827)](https://github.com/100bee/claude-code-mods/commits/main)
+
 </div>
 
 | mod | 하는 일 | 명령 |
